@@ -32,3 +32,34 @@ class HasManyOptions < AssocOptions
     options[:class_name] ? @class_name = options[:class_name] : @class_name = name.to_s.singularize.camelcase
   end
 end
+
+module Associatable
+  def belongs_to(name, options = {})
+    options = BelongsToOptions.new(name, options)
+
+    define_method(name) do
+      foreign_key = self.send(options.foreign_key)
+      options.model_class.where({options.primary_key => foreign_key}).first
+    end
+
+    assoc_options[name] = options
+  end
+
+  def has_many(name, options = {})
+    options = HasManyOptions.new(name, self, options)
+
+    define_method(name) do
+      primary_key = self.send(options.primary_key)
+      options.model_class.where({options.foreign_key => primary_key})
+    end
+  end
+
+  def assoc_options
+    @options ||= {}
+  end
+
+end
+
+class SQLObject
+  extend Associatable
+end
